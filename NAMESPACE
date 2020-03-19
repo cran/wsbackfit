@@ -1,0 +1,8 @@
+useDynLib(wsbackfit, .registration = TRUE)
+import(stats)
+import(graphics)
+export(sback, print.sback, summary.sback, plot.sback, sb)
+S3method(print, sback)
+S3method(print, summary.sback)
+S3method(summary, sback)
+S3method(plot, sback)
