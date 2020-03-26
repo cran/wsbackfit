@@ -973,6 +973,7 @@
      family,X0,X0l,offset0,M0,muhat0,n0,B,err)
      implicit none
      integer j,k,i,it,itmax,n,npar,kbin,n0,nparl,err
+     logical isnan
      double precision eps,media,s0,X(n,npar),Y(n),W(n),&
         M(n,npar),h(npar),family,cte,linc,muhat(n),devian,&
         devold,p0,sumw, X0(n0,npar),M0(n0,npar),muhat0(n0),&
@@ -1385,6 +1386,8 @@
      Z0(n0,npar),Z0l(n0,nparl),&
      etaold,alfa, X0(n0,npar),M0(n0,npar),MX0(n0,npar),&
      muhat0(n0),B(nparl+1),Zl(n,nparl), offset(n), offset0(n0)
+
+     logical isnan
      
      double precision,allocatable:: h0(:),Z2(:),Wz(:),EtaS(:), Eta(:),&
      eta0(:),etal(:),Y2(:),etal0(:)
