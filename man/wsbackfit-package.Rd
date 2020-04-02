@@ -16,8 +16,8 @@ The estimation procedure is based on smoothed backfitting which to our knowledge
 \tabular{ll}{
 Package: \tab wsbackfit\cr
 Type: \tab Package\cr
-Version: \tab 1.0-1\cr
-Date: \tab 2020-03-25\cr
+Version: \tab 1.0-2\cr
+Date: \tab 2020-04-01\cr
 License: \tab GPL\cr
 }
 }

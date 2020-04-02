@@ -1,4 +1,4 @@
-1f05d2f3bc626bce811664b955dc12c3 *DESCRIPTION
+eca34bd151272e7e5efecc6a467f3253 *DESCRIPTION
 ed1ace72012a8f5de01075d839c742fd *NAMESPACE
 970897900dcdca284de9b29116262895 *R/calculate.CV.R
 ee4356a2863491396ce280f03beda1bf *R/construct.fixed.matrix.R
@@ -14,7 +14,7 @@ db96c4793e956f19f893a29c8eb19c0a *R/print.summary.sback.R
 53dc767c2fea5400e158b142a77d500a *R/sback.fit.R
 2105842d2cfbc5f268b04204e63ab272 *R/search.bandwidth.R
 a2fe864e96ee81a4ff841447975febd8 *R/summary.sback.R
-a5c94944bb202b4b9211593a49849e15 *build/partial.rdb
+64c33f027425e96cab671b869db0b61c *build/partial.rdb
 1fe9734b4998e438d197dc34522ed07c *data/infect.rda
 43f9609debd0ab9349a315229ba18563 *man/infect.Rd
 eb70ec42fb8c842d3c4716f130660313 *man/plot.sback.Rd
@@ -22,6 +22,6 @@ eb70ec42fb8c842d3c4716f130660313 *man/plot.sback.Rd
 6ad08d7b6e212cf10578a88a36db657e *man/sb.Rd
 927f3cc2d9ba5d9cad5cc3cfcc153352 *man/sback.Rd
 ed203b2cdecd1587a51e3ba58da24b0f *man/summary.sback.Rd
-92977e0bd4a61275d4a598fd80b6738a *man/wsbackfit-package.Rd
+982438222ff0a586a2a6aef9b54d3433 *man/wsbackfit-package.Rd
 387167297f1f8df0c1376c5701a764c1 *src/init.c
-ea5b0dbfd8d4fd83984bb56ab7617648 *src/wsbackfit.f90
+404d32e354053cda7755e324219d76b4 *src/wsbackfit.f90

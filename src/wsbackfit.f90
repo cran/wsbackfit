@@ -954,6 +954,7 @@
      RETURN
      END SUBROUTINE bksub2
      END MODULE lsq
+
 !     *********************************************************
 !     *********************************************************     
      subroutine Ortogonaliza (X,W,n,p)
@@ -973,7 +974,6 @@
      family,X0,X0l,offset0,M0,muhat0,n0,B,err)
      implicit none
      integer j,k,i,it,itmax,n,npar,kbin,n0,nparl,err
-     logical isnan
      double precision eps,media,s0,X(n,npar),Y(n),W(n),&
         M(n,npar),h(npar),family,cte,linc,muhat(n),devian,&
         devold,p0,sumw, X0(n0,npar),M0(n0,npar),muhat0(n0),&
@@ -1015,7 +1015,7 @@
 
          !######### Control de errores  #######################     
           do i=1,n
-             if(isnan(muhat(i)).or.isnan(eta(i))) goto 2
+             if((muhat(i).ne.muhat(i)).or.(eta(i).ne.eta(i))) goto 2
           end do
          !#####################################################    
 
@@ -1096,8 +1096,7 @@
 
      allocate(h2(npar),&
      hmin(npar),hmax(npar),h3(npar),hopt(npar))
-
-     !logical isnan     
+ 
      h2 = h
      calib=.FALSE.
      do i = 1,npar
@@ -1387,7 +1386,6 @@
      etaold,alfa, X0(n0,npar),M0(n0,npar),MX0(n0,npar),&
      muhat0(n0),B(nparl+1),Zl(n,nparl), offset(n), offset0(n0)
 
-     logical isnan
      
      double precision,allocatable:: h0(:),Z2(:),Wz(:),EtaS(:), Eta(:),&
      eta0(:),etal(:),Y2(:),etal0(:)
@@ -1428,7 +1426,7 @@
           
           !######### Control de errores  #######################     
           do i=1,n
-             if(isnan(muhat(i)).or.isnan(eta(i))) goto 2
+             if((muhat(i).ne.muhat(i)).or.(eta(i).ne.eta(i))) goto 2
           end do
           !#####################################################    
            
@@ -1503,7 +1501,7 @@
      erropt,pred2,PredCV(n),&
      Mx(n,npar),&
      X0(n0,npar),z0(n0,npar),m0(n0,npar),mx0(n0,npar),pred0(n0)
-     logical calib !,isnan
+     logical calib
 
      double precision,allocatable::h2(:),hopt(:),h3(:),&
         hmin(:),hmax(:)
@@ -1806,8 +1804,7 @@
           Z(n),s0cv,t0cv,t1cv,M1bcv(kbin),M2bcv(kbin),&
           kernel2(kbin),M1b(kbin),aux,h,haux,num,den,&
           Zb(kbin),Yzb(kbin),Z2b(kbin),M2b(kbin)
-          double precision,external::L1,ker
-          !logical isnan      
+          double precision,external::L1,ker  
           if (h.gt.0) then
                sumw = 0
                do i = 1,n
@@ -1922,7 +1919,6 @@
           m0CV(kbin),Ymed(kbin),M0grid(kbin),aux,&
           t0cv,h,num,den,sumw
           double precision,external::L1,ker
-          !logical isnan
           if (h.gt.0) then
                sumw = 0
                do i = 1,n
