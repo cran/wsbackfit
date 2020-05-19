@@ -1,7 +1,7 @@
 sback.fit <-
-function(formula, data, offset = NULL, weights = NULL, kbin = 15, family = c("gaussian", "binomial", "poisson"), newdata = NULL, newoffset = NULL, call = NULL) {
+function(formula, data, offset = NULL, weights = NULL, kbin = 15, family = c("gaussian", "binomial", "poisson"), newdata = NULL, newoffset = NULL, call = NULL, pred = FALSE) {
 	family <- match.arg(family)
-	family <- switch(family, "gaussian" = 2, "binomial" = 1, "poisson" = 3)
+	family_fortran <- switch(family, "gaussian" = 2, "binomial" = 1, "poisson" = 3)
 
 	if(missing(formula)) {
 		stop("Argument \"formula\" is missing, with no default")
@@ -9,9 +9,6 @@ function(formula, data, offset = NULL, weights = NULL, kbin = 15, family = c("ga
 	if(missing(formula)) {
 		stop("Argument \"data\" is missing, with no default")
 	}
-	#if(!(family %in% 1:3)) {
-	#	stop("Family not supported")
-	#}
 	data[,"ONE"] <- 1.0
 	fsb <- interpret.sbformula(formula)
 	if(is.null(fsb$response)) {
@@ -112,7 +109,7 @@ function(formula, data, offset = NULL, weights = NULL, kbin = 15, family = c("ga
 	               h       = as.double(fsb$h[fsb$h != 0]),
 	               m       = matrix(as.double(rep(0.0,n*length(x.varnames.s))), nrow = n, ncol = length(x.varnames.s)),
 	               muhat   = as.double(rep(0.0,n)),
-	               family  = as.double(family),
+	               family  = as.double(family_fortran),
 		  		   x0	   = matrix(as.double(as.matrix(newdata[,x.varnames.s])), ncol = length(x.varnames.s)),
 		  		   x0l     = matrix(as.double(Xpl), ncol = nparl),
 		  		   offset0 = as.double(newoffset),
@@ -139,7 +136,7 @@ function(formula, data, offset = NULL, weights = NULL, kbin = 15, family = c("ga
 		m 	    = matrix(as.double(rep(0.0, n*length(z.varnames.s))), nrow = n, ncol = length(z.varnames.s)),
 		mx	    = matrix(as.double(rep(0.0, n*length(x.varnames.s))), nrow = n, ncol = length(x.varnames.s)),
 		muhat   = as.double(rep(0.0, n)),
-		family  = as.double(family),
+		family  = as.double(family_fortran),
 		x0 	    = matrix(as.double(as.matrix(newdata[,x.varnames.s])), ncol = length(x.varnames.s)),
 		z0 	    = matrix(as.double(as.matrix(newdata[,z.varnames.s])), ncol = length(z.varnames.s)),
 		z0l     = matrix(as.double(Xpl), ncol = nparl),
@@ -157,6 +154,14 @@ function(formula, data, offset = NULL, weights = NULL, kbin = 15, family = c("ga
 	colnames(effects) <- colnames(peffects)<- fsb$partial[fsb$h != 0]
 	names(fit$B) <- c("Intercept", names.param)
 
-	res <- list(call = call, data = data, weights = weights, offset = offset, pdata = newdata, poffset = newoffset, effects = effects, peffects = peffects, fitted.values = fit$muhat, pfitted.values = fit$muhat0, h = fit$h, fit = fit, coeff = fit$B)
+	residuals <- dev.residuals(data[,fsb$response], fit$muhat, weights, family = family)
+
+	res <- list(call = call, formula = formula, data = data, weights = weights, offset = offset, kbin = kbin, family = family, pdata = newdata, poffset = newoffset, effects = effects, peffects = peffects, fitted.values = fit$muhat, pfitted.values = fit$muhat0, residuals = residuals, h = fit$h, fit = fit, coeff = fit$B)
+	if(!pred) {
+		res$pdata <- NULL
+		res$poffset <- NULL
+		res$peffects <- NULL
+		res$pfitted.values <- NULL
+	}
   	res
 }

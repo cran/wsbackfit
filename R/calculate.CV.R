@@ -21,7 +21,7 @@ calculate.CV <- function(formula, data, offset = NULL, weights = NULL, kbin = 25
     wtest <- weights[which(groups == x)]
     offtrain <- offset[-which(groups == x)]
     offtest <- offset[which(groups == x)]
-    mod <- sback.fit(formula = formula, data = train, offset = offtrain, weights = wtrain, kbin = kbin, family = family, newdata = test, newoffset = offtest)
+    mod <- sback.fit(formula = formula, data = train, offset = offtrain, weights = wtrain, kbin = kbin, family = family, newdata = test, newoffset = offtest, pred = TRUE)
     if(mod$fit$err == 0) {
       response <- as.character(attr(terms(formula), "variables")[2]) # Response variable
       ECM <- append(ECM, dev(test[,response], mod$pfitted.values, wtest, family = family))

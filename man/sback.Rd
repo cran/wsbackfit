@@ -9,8 +9,7 @@ Main function for fitting generalized structured models by using smooth backfitt
 \usage{
 sback(formula, data, offset = NULL, weights = NULL, 
 	bw.grid = seq(0.01, 0.99, length = 30), KfoldCV = 5, kbin = 15, 
-  family = c("gaussian", "binomial", "poisson"), 
-  newdata = NULL, newoffset = NULL)
+  family = c("gaussian", "binomial", "poisson"))
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -38,12 +37,12 @@ an integer value specifying the number of binning knots. Default is 15.
 \item{family}{
 an character specifying the distribution family. Implemented are: Gaussian, Binomial and Poisson. In all cases, the link function is the canonical one (logit for binomial, identity for Gaussian and logarithm for Poisson). By default `gaussian'.
 }
-  \item{newdata}{
-a data frame containing the values of the covariates at which predictions are wanted. If not provided then the predictions correspond to the original data. 
-}
-\item{newoffset}{
-an optional numerical vector containing an a priori known component to be included in the linear predictor for the predictions (offset associated with the newdata).
-}
+%\item{newdata}{
+%a data frame containing the values of the covariates at which predictions are wanted. If not provided then the predictions correspond to the original data. 
+%}
+%\item{newoffset}{
+%an optional numerical vector containing an a priori known component to be included in the linear predictor for the predictions (offset associated with the newdata).
+%}
 }
 \details{
 The argument \code{formula} corresponds to the model for the conditional mean function, i.e., 
@@ -57,15 +56,18 @@ Finally, it is worth noting that for identifiability purposes, the estimating al
 \value{
 A list with the following components:
 \item{call}{the matched call.}
+\item{formula}{the original supplied \code{formula} argument.}
 \item{data}{the original supplied \code{data} argument.}
 \item{offset}{the original supplied \code{offset} argument.}
 \item{weights}{the original supplied \code{weights} argument.}
-\item{pdata}{the original supplied \code{newdata} argument.}
-\item{poffset}{the original supplied \code{newoffset} argument.}
+\item{kbin}{the original supplied \code{kbin} argument.}
+\item{family}{the original supplied \code{family} argument.}
+%\item{pdata}{the original supplied \code{newdata} argument.}
+%\item{poffset}{the original supplied \code{newoffset} argument.}
 \item{effects}{matrix with the estimated nonparametric functions (only the nonlinear component) for each covariate value in the original supplied data.}
-\item{peffects}{matrix with the estimated nonparametric functions (only the nonlinear component) for each covariate value in the original supplied newdata.}
+%\item{peffects}{matrix with the estimated nonparametric functions (only the nonlinear component) for each covariate value in the original supplied newdata.}
 \item{fitted.values}{a numeric vector with the fitted values for the supplied data.}
-\item{pfitted.values}{a numeric vector with the fitted values for the supplied newdata.}
+%\item{pfitted.values}{a numeric vector with the fitted values for the supplied newdata.}
 \item{h}{a numeric vector of the same length as the number of nonparametric functions, with the bandwidths actually used in the estimation (scaled. See Details).}
 \item{coeff}{a numeric vector with the estimated coefficients. This vector includes both the parametric effects as well as the coefficients associated with the linear component of the nonparametric functions. }
 \item{err.CV}{matrix with the cross-validated error (deviance) associated with the sequence of tested (unscaled) bandwidths. Each line corresponds to a particular bandwidth (unscaled. See Details).}
@@ -154,35 +156,30 @@ exposure <- round(runif(n, 50, 500))
 y <- rpois(n, exposure*exp(eta))
 df <- data.frame(y = y, x1 = x1, x2 = x2)
 
-# Dataframe and offset for prediction
-n.p <- 100
-newoffset <- rep(0, n.p)
-df.pred <- data.frame(x1 = seq(-1, 1,l = n.p), x2 = seq(-1, 1,l = n.p))
-
 # Fit the model
 m2 <- sback(formula = y ~ sb(x1, h = 0.1) + sb(x2, h = 0.1), 
   data = df, offset = log(exposure), 
-  newdata = df.pred, newoffset = newoffset, 
   kbin = 15, family = "poisson")
 
 summary(m2)
 
 par(mfrow = c(1,2))
 plot(m2)
+
+# Dataframe and offset for prediction
+n.p <- 100
+newoffset <- rep(0, n.p)
+df.pred <- data.frame(x1 = seq(-1, 1,l = n.p), x2 = seq(-1, 1,l = n.p))
+
+m2p <- predict(m2, newdata = df.pred, newoffset = newoffset)
 ###############################################
 # Postoperative Infection Data
 ###############################################
 data(infect)
 
-# Create newdata for prediction
-ngrid <- 30
-gluc0 <- seq(50, 190, length = ngrid)
-linf0 <- seq(0, 45, length = ngrid)
-df  <- expand.grid(gluc = gluc0, linf = linf0)
-
 # Generalized varying coefficient model with binary response
-m3 <- sback(formula = inf ~ sb(gluc, h = 22) + sb(gluc, by = linf, h = 12), 
-  data = infect, newdata = df, family = "binomial")
+m3 <- sback(formula = inf ~ sb(gluc, h = 10) + sb(gluc, by = linf, h = 10), 
+  data = infect, family = "binomial")
 
 summary(m3)
 
@@ -192,30 +189,39 @@ par(mfrow = c(1,3))
 plot(m3, composed = FALSE)
 
 # Personalized plots
+# First obtain predictions in new data
+# Create newdata for prediction
+ngrid <- 30
+gluc0 <- seq(50, 190, length = ngrid)
+linf0 <- seq(0, 45, length = ngrid)
+df  <- expand.grid(gluc = gluc0, linf = linf0)
+
+m3p <- predict(m3, newdata = df)
+
 par(mfrow = c(1,2))
 ii <- order(df[,"gluc"])
 
-# Parametric coefficients
-names(m3$coeff)
+## Parametric coefficients
+names(m3p$coeff)
 
 # Nonlinear components
-colnames(m3$peffects) 
+colnames(m3p$peffects) 
 
 # Include the linear component
-plot(df[ii,"gluc"], m3$coeff[["gluc"]]*df[ii,"gluc"] + 
-  m3$peffects[ii,"sb(gluc, h = 22)"], 
+plot(df[ii,"gluc"], m3p$coeff[["gluc"]]*df[ii,"gluc"] + 
+  m3p$peffects[ii,"sb(gluc, h = 10)"], 
   type = 'l', xlab = "Glucose (mg/dl)", ylab = "f_1(gluc)", 
   main = "Nonparametric effect of Glucose")
 
 # Include the linear component
-plot(df[ii,"gluc"], m3$coeff[["gluc:linf"]]*df[ii,"gluc"] + 
-  m3$peffects[ii,"sb(gluc, by = linf, h = 12)"], 
+plot(df[ii,"gluc"], m3p$coeff[["gluc:linf"]]*df[ii,"gluc"] + 
+  m3p$peffects[ii,"sb(gluc, h = 10, by = linf)"], 
   type= 'l', xlab = "Glucose (mg/dl)", ylab = "f_2(gluc)",
   main = "Varying coefficients as a function of Glucose")
 
 # Countour plot of the probability of post-opererational infection
 n <- sqrt(nrow(df))
-Z <- matrix(m3$pfitted.values, n, n)
+Z <- matrix(m3p$pfitted.values, n, n)
 filled.contour(z = Z, x = gluc0, y = linf0, 
   xlab = "Glucose (mg/dl)", ylab = "Lymphocytes (\%)",
   main = "Probability of post-opererational infection")

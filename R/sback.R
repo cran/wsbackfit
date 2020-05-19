@@ -1,5 +1,5 @@
 sback <-
-function(formula, data, offset = NULL, weights = NULL, bw.grid = seq(0.01, 0.99, length = 30), KfoldCV = 5, kbin = 15, family = c("gaussian", "binomial", "poisson"), newdata = NULL, newoffset = NULL) {
+function(formula, data, offset = NULL, weights = NULL, bw.grid = seq(0.01, 0.99, length = 30), KfoldCV = 5, kbin = 15, family = c("gaussian", "binomial", "poisson")) {
 	family <- match.arg(family)
 	if(missing(formula)) {
 		stop("Argument \"formula\" is missing, with no default")
@@ -7,9 +7,7 @@ function(formula, data, offset = NULL, weights = NULL, bw.grid = seq(0.01, 0.99,
 	if(missing(formula)) {
 		stop("Argument \"data\" is missing, with no default")
 	}
-	#if(!(family %in% 1:3)) {
-	#	stop("Family not supported")
-	#}
+
 	data[,"ONE"] <- 1.0
 	fsb <- interpret.sbformula(formula)
 	if(is.null(fsb$response)) {
@@ -20,19 +18,10 @@ function(formula, data, offset = NULL, weights = NULL, bw.grid = seq(0.01, 0.99,
 	if(any(is.na(match(c(fsb$response, c(x.varnames, z.varnames)), names(data))))) {
 		stop("Not all needed variables are supplied in data")
 	}
-	if(!is.null(newdata)) {
-		newdata[,"ONE"] <- 1.0
-		if(any(is.na(match(c(x.varnames, z.varnames), names(data))))) {
-			stop("Not all needed variables are supplied in newdata")
-		}
-	} else {
-		newdata <- data
-	}
+	
 	data <- na.omit(data[,c(fsb$response, unique(c(x.varnames, z.varnames)))])
-	newdata <- na.omit(newdata[,unique(c(x.varnames, z.varnames))])
 	
 	n <- nrow(data)
-	n0 <- nrow(newdata)
 	if(is.null(weights)) {
 		weights <- rep(1, n)  
 	} else {
@@ -42,10 +31,6 @@ function(formula, data, offset = NULL, weights = NULL, bw.grid = seq(0.01, 0.99,
 
 	if(is.null(offset)) {
 		offset <- rep(0, n)  
-	}
-
-	if(is.null(newoffset)) {
-		newoffset <- rep(0, n0)  
 	}
 
 	# Smooth effects (either varying or not)
@@ -62,17 +47,17 @@ function(formula, data, offset = NULL, weights = NULL, bw.grid = seq(0.01, 0.99,
 
 	if(any(fsb$h == -1)) {
 		optband <-  search.bandwidth(formula = formula, data = data, offset = offset, weights = weights, bandwidth = bw.grid, KfoldCV = KfoldCV, kbin = kbin, family = family)
-	    res <- sback.fit(formula = optband$formula, data = data, offset = offset, weights = weights, kbin = kbin, family = family, newdata = newdata, newoffset = newoffset, call = match.call()) 
+	    res <- sback.fit(formula = optband$formula, data = data, offset = offset, weights = weights, kbin = kbin, family = family, newdata = data, newoffset = offset, call = match.call()) 
 	    if(res$fit$err == 1) {
 			stop("There has been an error during the fitting process. Most likely, the error is due to bandwidth parameters being too small.")
 		}
 	    res$err.CV <- optband$err.CV
 	} else {
-		res <- sback.fit(formula = formula, data = data, offset = offset, weights = weights, kbin = kbin, family = family, newdata = newdata, newoffset = newoffset, call = match.call()) 
+		res <- sback.fit(formula = formula, data = data, offset = offset, weights = weights, kbin = kbin, family = family, newdata = data, newoffset = offset, call = match.call()) 
 		if(res$fit$err == 1) {
 			stop("There has been an error during the fitting process. Most likely, the error is due to bandwidth parameters being too small.")
 		}
 	}
-  	class(res) <- "sback"
+	class(res) <- "sback"
   	res
 }
