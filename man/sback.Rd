@@ -8,7 +8,9 @@ Main function for fitting generalized structured models by using smooth backfitt
 }
 \usage{
 sback(formula, data, offset = NULL, weights = NULL, 
-	bw.grid = seq(0.01, 0.99, length = 30), KfoldCV = 5, kbin = 15, 
+  kernel = c("Gaussian", "Epanechnikov"), 
+  bw.grid = seq(0.01, 0.99, length = 30), c.bw.factor = FALSE,
+  KfoldCV = 5, kbin = 30, 
   family = c("gaussian", "binomial", "poisson"))
 }
 %- maybe also 'usage' for other objects documented here.
@@ -25,17 +27,23 @@ an optional numerical vector containing priori known components to be included i
   \item{weights}{
 an optional numeric vector of `prior weights' to be used in the fitting process. By default, the weights are set to one.
 }
+\item{kernel}{
+a character specifying the kernel function. Implemented are: Gaussian and Epanechnikov. By default `Gaussian'.
+}
   \item{bw.grid}{
 numeric vector; a grid for for searching the bandwidth factor \eqn{h_c} when using cross-validation. The bandwidth for dimension (covariate) \eqn{j} is \eqn{h_c \sigma_j}, with \eqn{\sigma_j} being the standard deviation of \eqn{X_j} (see Details). Default is a sequence of length 30 between 0.01 and 0.99.  
 }
+\item{c.bw.factor}{
+logical; indicates whether the common factor scheme for bandwidth selection proposed by Han and Park (2018) is performed. If TRUE, and provided the user has specified the (marginal) bandwidths for all nonparametric functions, say \eqn{h_j}, the functions searches for the common factor \eqn{c_h} that minimizes the deviance via (k-fold) cross-validation when the bandwidth used for dimension (covariate) \eqn{j} is \eqn{c_h h_j}. The search is done in an equispaced grid of length 15 between 0.5 and 1.5. The default is FALSE.
+}
   \item{KfoldCV}{
-number of cross-validation folds to be used for automatically selecting the optimal bandwidth (in the sequence given in argument \code{bw.grid}) for each nonparametric function. Default is 5.
+number of cross-validation folds to be used for either (1) automatically selecting the optimal bandwidth (in the sequence given in argument \code{bw.grid}) for each nonparametric function; or (2) automatically selecting the optimal common bandwidth factor (see argument \code{c.bw.factor}). Default is 5.
 }
 \item{kbin}{
-an integer value specifying the number of binning knots. Default is 15.
+an integer value specifying the number of binning knots. Default is 30.
 }
 \item{family}{
-an character specifying the distribution family. Implemented are: Gaussian, Binomial and Poisson. In all cases, the link function is the canonical one (logit for binomial, identity for Gaussian and logarithm for Poisson). By default `gaussian'.
+a character specifying the distribution family. Implemented are: Gaussian, Binomial and Poisson. In all cases, the link function is the canonical one (logit for binomial, identity for Gaussian and logarithm for Poisson). By default `gaussian'.
 }
 %\item{newdata}{
 %a data frame containing the values of the covariates at which predictions are wanted. If not provided then the predictions correspond to the original data. 
@@ -49,7 +57,7 @@ The argument \code{formula} corresponds to the model for the conditional mean fu
 \deqn{E[Y|X,Z] = G(g_0 + \sum_j g_j (X_j) Z_j  + Z_k^{'}\beta).}
 This formula is similar to that used for the \code{\link{glm}} function, except that nonparametric functions can be added to the additive predictor by means of function \code{\link{sb}}. For instance, specification \code{y ~ x1 + sb(x2, h = -1)} assumes a parametric effect of \code{x1} (with \code{x1} either numerical or categorical), and a nonparametric effect of \code{x2}. \code{h = -1} indicates that the bandwidth should be selected using k-fold cross-validation. Varying coefficient terms get incorporated similarly. For example, \code{y ~ sb(x1, by = x2)} indicates that the coefficients of \code{x2} depend, nonparametrically, on \code{x1}. In this case both, \code{x1} and \code{x2}, should be numerical predictors. 
 
-With respect to the bandwidths associated with each nonparametric function specified using function \code{\link{sb}}, the user has two options: a) to specify in the formula the desired bandwidth - on the scale of the predictor - through argument \code{h} of function \code{\link{sb}}; or, b) to allow the bandwidths to be automatically and data adaptively selected via cross-validation. In the latter case, the estimation procedure tests each of the bandwidth factors supplied in argument \code{bw.grid}, and selects the one that minimizes the deviance via (k-fold) cross-validation. The number k of cross-validation folds is specified through argument \code{KfoldCV}, with 5 by default. We note that when using cross-validation, to ensure that the bandwidths associated with the nonparametric functions are on the scale of the predictors, the finally used bandwidth is \eqn{h_j =  h \sigma_j} with \eqn{\sigma_j} being the standard deviation of \eqn{X_j}. That is, before fitting the model, each bandwidth factor \eqn{h} provided in \code{bw.grid} is multiplied by the standard deviation of the corresponding predictor. Note that the user has also the possibility to specify the bandwidths for some nonparametric function (through argument \code{h}), while letting for the remaining nonparametric functions the procedure select the bandwidths by cross-validation. For these functions, argument \code{h} should be set to -1.
+With respect to the bandwidths associated with each nonparametric function specified using function \code{\link{sb}}, the user has two options: a) to specify in the formula the desired bandwidth - on the scale of the predictor - through argument \code{h} of function \code{\link{sb}} (followed or not by the common bandwidth factor scheme proposed by Han and Park (2018); see argument \code{c.bw.factor}); or, b) to allow the bandwidths to be automatically and data adaptively selected via cross-validation. In the latter case, the estimation procedure tests each of the bandwidth factors supplied in argument \code{bw.grid}, and selects the one that minimizes the deviance via (k-fold) cross-validation. The number k of cross-validation folds is specified through argument \code{KfoldCV}, with 5 by default. We note that when using cross-validation, to ensure that the bandwidths associated with the nonparametric functions are on the scale of the predictors, the finally used bandwidth is \eqn{h_j =  h \sigma_j} with \eqn{\sigma_j} being the standard deviation of \eqn{X_j}. That is, before fitting the model, each bandwidth factor \eqn{h} provided in \code{bw.grid} is multiplied by the standard deviation of the corresponding predictor. Note that the user has also the possibility to specify the bandwidths for some nonparametric function (through argument \code{h}), while letting for the remaining nonparametric functions the procedure select the bandwidths by cross-validation. For these functions, argument \code{h} should be set to -1. In this case, the common bandwidth factor scheme proposed by Han and Park (2018) cannot be used as it requires that all bandwidths are specified. 
 
 Finally, it is worth noting that for identifiability purposes, the estimating algorithm implemented in the \code{wsbackfit} package decomposes each nonparametric function in two components: a linear (parametric) component and a nonlinear (nonparametric) component. Note that it implies that for a varying coefficient term \code{~ sb(x1, by = x2)}, the parametric part includes the linear component associated with \code{x1}, as well as the linear interaction between \code{x1} and \code{x2}.     
 }
@@ -60,6 +68,7 @@ A list with the following components:
 \item{data}{the original supplied \code{data} argument.}
 \item{offset}{the original supplied \code{offset} argument.}
 \item{weights}{the original supplied \code{weights} argument.}
+\item{kernel}{the original supplied \code{kernel} argument.}
 \item{kbin}{the original supplied \code{kbin} argument.}
 \item{family}{the original supplied \code{family} argument.}
 %\item{pdata}{the original supplied \code{newdata} argument.}
@@ -67,12 +76,13 @@ A list with the following components:
 \item{effects}{matrix with the estimated nonparametric functions (only the nonlinear component) for each covariate value in the original supplied data.}
 %\item{peffects}{matrix with the estimated nonparametric functions (only the nonlinear component) for each covariate value in the original supplied newdata.}
 \item{fitted.values}{a numeric vector with the fitted values for the supplied data.}
+\item{residuals}{a numeric vector with the deviance residuals for the supplied data.}
 %\item{pfitted.values}{a numeric vector with the fitted values for the supplied newdata.}
 \item{h}{a numeric vector of the same length as the number of nonparametric functions, with the bandwidths actually used in the estimation (scaled. See Details).}
 \item{coeff}{a numeric vector with the estimated coefficients. This vector includes both the parametric effects as well as the coefficients associated with the linear component of the nonparametric functions. }
 \item{err.CV}{matrix with the cross-validated error (deviance) associated with the sequence of tested (unscaled) bandwidths. Each line corresponds to a particular bandwidth (unscaled. See Details).}
 }
-%\references{}
+\references{Han, K. and Park B.U. (2018). Smooth backfitting for errors-in-variables additive models. Annals of Statistics, 46, 2216-2250.}
 \author{Javier Roca-Pardinas, Maria Xose Rodriguez-Alvarez and Stefan Sperlich}
 %\note{}
 \seealso{
@@ -105,8 +115,8 @@ y <- mu + err
 df <- data.frame(x1 = x1, x2 = x2, x3 = x3, x4 = x4, x5 = as.factor(x5), y = y)
 
 # Fit the model with a fixed bandwidth for each covariate
-m0 <- sback(formula = y ~ x5 + sb(x1, h = 0.13) + sb(x2, h = 0.13) 
-  + sb(x3, h = 0.13) + sb(x4, h = 0.13), kbin = 15, data = df)
+m0 <- sback(formula = y ~ x5 + sb(x1, h = 0.1) + sb(x2, h = 0.1) 
+  + sb(x3, h = 0.1) + sb(x4, h = 0.1), kbin = 30, data = df)
 
 summary(m0)
 
@@ -118,7 +128,7 @@ plot(m0)
 # Fit the model with bandwidths selectec using K-fold cross-validation
 \dontrun{
 m0cv <- sback(formula = y ~ x5 + sb(x1) + sb(x2) 
-  + sb(x3) + sb(x4), kbin = 15, bw.grid = seq(0.01, 0.99, length = 30), KfoldCV = 5, 
+  + sb(x3) + sb(x4), kbin = 30, bw.grid = seq(0.01, 0.99, length = 30), KfoldCV = 5, 
   data = df)
 
 summary(m0cv)
@@ -132,8 +142,8 @@ resid <- y - m0$fitted.values
 sig0 <- var(resid[x5 == 0])
 sig1 <- var(resid[x5 == 1])
 w <- x5/sig1 + (1-x5)/sig0
-m1 <- sback(formula = y ~ x5 + sb(x1, h = 0.13) + sb(x2, h = 0.13) 
-  + sb(x3, h = 0.13) + sb(x4, h = 0.13), weights = w, kbin = 15, data = df)
+m1 <- sback(formula = y ~ x5 + sb(x1, h = 0.1) + sb(x2, h = 0.1) 
+  + sb(x3, h = 0.1) + sb(x4, h = 0.1), weights = w, kbin = 30, data = df)
 
 summary(m1)
 
@@ -159,7 +169,7 @@ df <- data.frame(y = y, x1 = x1, x2 = x2)
 # Fit the model
 m2 <- sback(formula = y ~ sb(x1, h = 0.1) + sb(x2, h = 0.1), 
   data = df, offset = log(exposure), 
-  kbin = 15, family = "poisson")
+  kbin = 30, family = "poisson")
 
 summary(m2)
 
@@ -172,6 +182,7 @@ newoffset <- rep(0, n.p)
 df.pred <- data.frame(x1 = seq(-1, 1,l = n.p), x2 = seq(-1, 1,l = n.p))
 
 m2p <- predict(m2, newdata = df.pred, newoffset = newoffset)
+
 ###############################################
 # Postoperative Infection Data
 ###############################################
@@ -179,7 +190,7 @@ data(infect)
 
 # Generalized varying coefficient model with binary response
 m3 <- sback(formula = inf ~ sb(gluc, h = 10) + sb(gluc, by = linf, h = 10), 
-  data = infect, family = "binomial")
+  data = infect, family = "binomial", kbin = 15)
 
 summary(m3)
 

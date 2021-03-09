@@ -29,7 +29,7 @@ data(infect)
 
 # Generalized varying coefficient model with binary response
 m3 <- sback(formula = inf ~ sb(gluc, h = 10) + sb(gluc, by = linf, h = 10), 
-  data = infect, family = "binomial")
+  data = infect, family = "binomial", kbin = 15)
 
 summary(m3)
 

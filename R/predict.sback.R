@@ -15,7 +15,7 @@ predict.sback <- function(object, newdata, newoffset = NULL, ...) {
 		stop("Not all needed variables are supplied in newdata")
 	}
 	formula <- create.formula(formula = object$formula, h0 = object$h, data = object$data)
-	fit <- sback.fit(formula = formula, data = object$data, offset = object$offset, weights = object$weights, kbin = object$kbin, family = object$family, newdata = newdata, newoffset = newoffset, call = NULL, pred = TRUE)
+	fit <- sback.fit(formula = formula, data = object$data, offset = object$offset, weights = object$weights, kernel = object$kernel, kbin = object$kbin, family = object$family, newdata = newdata, newoffset = newoffset, call = NULL, pred = TRUE)
 
 	out <- list()
 	out$newdata <- newdata

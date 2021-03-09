@@ -16,8 +16,8 @@ The estimation procedure is based on smoothed backfitting which to our knowledge
 \tabular{ll}{
 Package: \tab wsbackfit\cr
 Type: \tab Package\cr
-Version: \tab 1.0-3\cr
-Date: \tab 2020-05-11\cr
+Version: \tab 1.0-4\cr
+Date: \tab 2021-03-09\cr
 License: \tab GPL\cr
 }
 }
@@ -28,6 +28,8 @@ Maintainer: Javier Roca-Pardinas <roca@uvigo.es>
 }
 
 \references{
+Han, K. and Park B.U. (2018). Smooth backfitting for errors-in-variables additive models. Annals of Statistics, 46, 2216-2250.
+
 Lee, Y.K., Mammen, E. and Park, B.U. (2012). Flexible generalized varying coefficient regression models. The Annals of Statistics, 40(3), 1906-1933.
 
 Mammen, E. and Nielsen, J. (2003). Generalised structured models. Biometrika, 90, 551-566.

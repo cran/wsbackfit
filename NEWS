@@ -1,0 +1,5 @@
+	CHANGES in `wsbackfit' VERSION 1.0-4
+		
+	o	New argument in function sback which allows the user to select the kernel function. Implemented are: Gaussian and Epanechnikov. By default `Gaussian'.
+	o	Implementation of the common factor scheme for bandwidth selection proposed by Han and Park (2018). See argument c.bw.factor in function sback().
+	o	The default number of binning knots has been set to 30. In the previous version it was 15.

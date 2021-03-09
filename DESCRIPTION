@@ -1,8 +1,8 @@
 Package: wsbackfit
 Type: Package
 Title: Weighted Smooth Backfitting for Structured Models
-Version: 1.0-3
-Date: 2020-05-11
+Version: 1.0-4
+Date: 2021-03-09
 Imports: graphics, stats
 Authors@R: c(person(given = "Javier", family = "Roca-Pardinas", 
            email = "roca@uvigo.es", role = c("aut", "cre")),
@@ -16,11 +16,11 @@ License: GPL
 LazyLoad: yes
 Depends: R (>= 3.5.0)
 NeedsCompilation: yes
-Packaged: 2020-05-11 18:22:20 UTC; mrodriguez
+Packaged: 2021-03-09 16:06:04 UTC; mrodriguez
 Author: Javier Roca-Pardinas [aut, cre],
   Maria Xose Rodriguez-Alvarez [aut],
   Stefan Sperlich [aut],
   Alan Miller (FORTRAN code lsq.f90: weighted least-squares module) [ctb]
 Maintainer: Javier Roca-Pardinas <roca@uvigo.es>
 Repository: CRAN
-Date/Publication: 2020-05-19 11:20:02 UTC
+Date/Publication: 2021-03-10 00:00:02 UTC

@@ -54,8 +54,8 @@ y <- mu + err
 df <- data.frame(x1 = x1, x2 = x2, x3 = x3, x4 = x4, x5 = as.factor(x5), y = y)
 
 # Fit the model with a fixed bandwidth for each covariate
-m0 <- sback(formula = y ~ x5 + sb(x1, h = 0.13) + sb(x2, h = 0.13) 
-  + sb(x3, h = 0.13) + sb(x4, h = 0.13), kbin = 15, data = df)
+m0 <- sback(formula = y ~ x5 + sb(x1, h = 0.1) + sb(x2, h = 0.13) 
+  + sb(x3, h = 0.1) + sb(x4, h = 0.1), kbin = 30, data = df)
 
 summary(m0)
 }

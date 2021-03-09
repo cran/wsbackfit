@@ -1,5 +1,5 @@
 sback <-
-function(formula, data, offset = NULL, weights = NULL, bw.grid = seq(0.01, 0.99, length = 30), KfoldCV = 5, kbin = 15, family = c("gaussian", "binomial", "poisson")) {
+function(formula, data, offset = NULL, weights = NULL, kernel = c("Gaussian", "Epanechnikov"), bw.grid = seq(0.01, 0.99, length = 30), c.bw.factor = FALSE, KfoldCV = 5, kbin = 30, family = c("gaussian", "binomial", "poisson")) {
 	family <- match.arg(family)
 	if(missing(formula)) {
 		stop("Argument \"formula\" is missing, with no default")
@@ -46,16 +46,28 @@ function(formula, data, offset = NULL, weights = NULL, bw.grid = seq(0.01, 0.99,
 	}
 
 	if(any(fsb$h == -1)) {
-		optband <-  search.bandwidth(formula = formula, data = data, offset = offset, weights = weights, bandwidth = bw.grid, KfoldCV = KfoldCV, kbin = kbin, family = family)
-	    res <- sback.fit(formula = optband$formula, data = data, offset = offset, weights = weights, kbin = kbin, family = family, newdata = data, newoffset = offset, call = match.call()) 
+		if(c.bw.factor) {
+			 stop("For the alpha correction the user needs to specify bandwidth parameters for all nonparametric functions.")
+		}
+		optband <-  search.bandwidth(formula = formula, data = data, offset = offset, weights = weights, kernel = kernel, bandwidth = bw.grid, KfoldCV = KfoldCV, kbin = kbin, family = family)
+	    res <- sback.fit(formula = optband$formula, data = data, offset = offset, weights = weights, kernel = kernel, kbin = kbin, family = family, newdata = data, newoffset = offset, call = match.call()) 
 	    if(res$fit$err == 1) {
 			stop("There has been an error during the fitting process. Most likely, the error is due to bandwidth parameters being too small.")
 		}
 	    res$err.CV <- optband$err.CV
 	} else {
-		res <- sback.fit(formula = formula, data = data, offset = offset, weights = weights, kbin = kbin, family = family, newdata = data, newoffset = offset, call = match.call()) 
-		if(res$fit$err == 1) {
-			stop("There has been an error during the fitting process. Most likely, the error is due to bandwidth parameters being too small.")
+		if(!c.bw.factor) {
+			res <- sback.fit(formula = formula, data = data, offset = offset, weights = weights, kernel = kernel, kbin = kbin, family = family, newdata = data, newoffset = offset, call = match.call()) 
+			if(res$fit$err == 1) {
+				stop("There has been an error during the fitting process. Most likely, the error is due to bandwidth parameters being too small.")
+			}
+		} else {
+			optband <-  search.alpha(formula = formula, data = data, offset = offset, weights = weights, kernel = kernel, alpha = seq(0.5, 1.5, length = 10), KfoldCV = KfoldCV, kbin = kbin, family = family)
+		    res <- sback.fit(formula = optband$formula, data = data, offset = offset, weights = weights, kernel = kernel, kbin = kbin, family = family, newdata = data, newoffset = offset, call = match.call()) 
+		    if(res$fit$err == 1) {
+				stop("There has been an error during the fitting process. Most likely, the error is due to bandwidth parameters being too small.")
+			}
+		    res$err.CV <- optband$err.CV
 		}
 	}
 	class(res) <- "sback"

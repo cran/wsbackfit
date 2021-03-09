@@ -971,28 +971,38 @@
 !     *********************************************************
 !     *********************************************************     
      subroutine dllsback(X,Y,offset, W,n,npar,Xl,nparl,kbin,h,M,muhat,&
-     family,X0,X0l,offset0,M0,muhat0,n0,B,err)
+     family,X0,X0l,offset0,M0,muhat0,n0,B,err,ikernel)
      implicit none
-     integer j,k,i,it,itmax,n,npar,kbin,n0,nparl,err
+     integer j,k,i,it,itmax,n,npar,kbin,n0,nparl,err     
+     
      double precision eps,media,s0,X(n,npar),Y(n),W(n),&
         M(n,npar),h(npar),family,cte,linc,muhat(n),devian,&
         devold,p0,sumw, X0(n0,npar),M0(n0,npar),muhat0(n0),&
-        B(nparl+1),Xl(n,nparl),X0l(n0,nparl), offset(n), offset0(n0)
+        B(nparl+1),Xl(n,nparl),X0l(n0,nparl), offset(n), offset0(n0),&
+        ikernel     
+     
      double precision,external::slinc,diriv,weight,dev
      double precision,allocatable::h0(:), Z2(:), Wz(:),& 
-     Eta(:),EtaL(:), EtaS(:),eta0(:), Y2(:), etal0(:)
+     Eta(:),EtaL(:),EtaS(:),eta0(:), Y2(:), etal0(:)
      allocate (h0(npar),Z2(n),Wz(n),Eta(n),EtaL(n),EtaS(n),&
      eta0(n0),Y2(n),etal0(n0))
      
      linc = family
      eps = 0.01
      itmax = 10
-     M = 0.0
+
+    
+     B = 0.0
+     err = 0
+     h0 = 0.0
+     Z2 = 0.0
+     Wz = 0.0
      eta = 0.0
      EtaS = 0.0
-     B = 0.0
+     Etal = 0.0
+     eta0 = 0.0
      Y2 = 0.0
-     err = 0
+     Etal0 = 0.0
 
                          
      call Mean(Y,W,n,p0)
@@ -1048,7 +1058,7 @@
           Y2 = Z2 - Etal  ! Eliminamos parte lineal
           h0 = h  
           
-          call SBack3(X,Y2,W,Wz,n,kbin,npar,h0,M,etaS,X0,M0,eta0,n0) 
+          call SBack3(X,Y2,W,Wz,n,kbin,npar,h0,M,etaS,X0,M0,eta0,n0,ikernel) 
 
           eta = Etal + EtaS + offset
           call Linv(n,Eta,Muhat,linc) 
@@ -1074,6 +1084,8 @@
      EtaS = 0.0
      B = 0.0
      Y2 = 0.0
+     deallocate (h0,Z2,Wz,Eta,EtaL,EtaS,eta0,Y2,etal0)
+     return
  end
 
 
@@ -1081,21 +1093,26 @@
 !     *********************************************************
 !     *********************************************************         
      subroutine SBack3(X,Y,W,Wy,n,kbin,npar,h,M,&
-     Pred,X0,M0,eta0,n0)
+     Pred,X0,M0,eta0,n0,ikernel)
      implicit none
+
      logical converge,calib
+
      integer j,k,i,n,npar,icont,irep,ih,nh,kbin,N0
+     
      double precision X(n,npar),Y(n),W(n),Wy(n),&
-        h(npar),M(n,npar),NW(n,npar),Pred(n),&
+        h(npar),M(n,npar),&
         xmin,xmax,rango,erropt,haux,&
-        ErrCV, PredCV(n),&
-        X0(n0,npar),M0(n0,npar),eta0(n0)
+        ErrCV, Pred(n),&
+        X0(n0,npar),M0(n0,npar),eta0(n0),&
+        ikernel
 
      double precision,allocatable:: h2(:),&
-     hmin(:),hmax(:),h3(:),hopt(:)
+     hmin(:),hmax(:),h3(:),hopt(:), PredCV(:)
 
      allocate(h2(npar),&
-     hmin(npar),hmax(npar),h3(npar),hopt(npar))
+     hmin(npar),hmax(npar),h3(npar),hopt(npar),&
+     PredCV(n))
  
      h2 = h
      calib=.FALSE.
@@ -1122,7 +1139,7 @@
                          h3 = 0.0
                          h3(j) = haux
                          call SBack2(X,Y,W,Wy,n,npar,h3,M,Pred,PredCV,&
-                                     kbin,X0,M0,eta0,n0)
+                                     kbin,X0,M0,eta0,n0,ikernel)
                          
                          ErrCV = 0.0
                          do i=1,n
@@ -1149,7 +1166,7 @@
                          haux = hmin(j)+((hmax(j)-hmin(j))/nh)*(ih-1)
                          h3(j) = haux
                          call SBack2(X,Y,W,Wy,n,npar,h3,M,Pred,PredCV,&
-                              kbin,X0,M0,eta0,n0)
+                              kbin,X0,M0,eta0,n0,ikernel)
                          
                          ErrCV = 0.0
                          do i = 1,n
@@ -1167,40 +1184,50 @@
      end if
      
      call SBack2(X,Y,W,Wy,n,npar,h2,M,Pred,PredCV,&
-     kbin,X0,M0,eta0,n0)   
-     h = h2          
+     kbin,X0,M0,eta0,n0,ikernel)   
+     h = h2
+
      deallocate(h2, &
-     hmin, hmax, h3, hopt)          
+     hmin, hmax, h3, hopt, PredCV)          
      end
 !     *********************************************************
 !     *********************************************************     
      subroutine SBack2(X,Y,W,Wy,n,npar,h,M,Pred,PredCV,kbin,&
-     X0,M0,pred0,n0)
+     X0,M0,pred0,n0,ikernel)
      implicit none
      logical converge
+     
      integer maxit,j,k,i,it,i1,i2,n,npar,kbin,n0
+     
      double precision eps,integral,num,den,med,&
         erraux,Maux,X(n,npar),Y(n),W(n),Wy(n),h(npar),M(n,npar),&
         Pred(n),xmin,xmax,delta,medy,PredCV(n),&
-        mauxcv, Xgrid(kbin,npar), &
+        mauxcv, &
         X0(n0,npar),M0(n0,npar),pred0(n0), Var, a,&
-        Baux(2), Predaux(n)
+        ikernel
+     
      double precision,allocatable::Mold(:,:),NW(:,:),&
         Mcv(:,:),Mgrid(:,:),NWgrid(:,:),Vaux(:),Wb(:),&
         NWgridCV(:,:),MgridCV(:,:), Err(:), &
-        PjGrid(:,:),PjkGrid(:,:,:,:)
+        PjGrid(:,:),PjkGrid(:,:,:,:), Xgrid(:,:),&
+        Baux(:), Predaux(:)
+    
      double precision,external::pjk,pj,integrate
      
-     maxit = 10
-     eps = 0.01
-     Baux = 0.0
-     Predaux = 0.0   
-          
      allocate (Mold(n,npar),NW(n,npar),Mcv(n,npar),&
      Mgrid(kbin,npar),NWgrid(kbin,npar),&
      Vaux(kbin),Wb(kbin),NWgridCV(kbin,npar),&
      MgridCV(kbin,npar),Err(npar),&
-     PjGrid(kbin,npar),PjkGrid(kbin,kbin,npar,npar))
+     PjGrid(kbin,npar),PjkGrid(kbin,kbin,npar,npar),&
+     Xgrid(kbin,npar), Baux(2), Predaux(n))
+
+     maxit = 10
+     eps = 0.01
+     Baux = 0.0
+     Predaux = 0.0
+     M = 0.0
+     M0 = 0.0
+
      
      !   ###     GRID DONDE HACER LAS ESTIMACIONES
           do j = 1,npar
@@ -1214,7 +1241,7 @@
           do j = 1,npar
                !if (h(j).gt.0) then
                     do i = 1,kbin
-                         PjGrid(i,j) = pj(X(1,j),Xgrid(i,j),Wy,h(j),n)
+                         PjGrid(i,j) = pj(X(1,j),Xgrid(i,j),Wy,h(j),n,ikernel)
                     end do
                !end if
           end do
@@ -1227,7 +1254,7 @@
                                    PjkGrid(i1,i2,j,k)=&
                                    pjk(X(1,j),X(1,k),&
                                     Xgrid(i1,j),Xgrid(i2,k)&
-                                    ,Wy,h(j),h(k),n)
+                                    ,Wy,h(j),h(k),n,ikernel)
                               !end if
                          end do
                     end do
@@ -1243,18 +1270,19 @@
                     end do
                end do
           end do
-      ! ########  NADARAYA-WATSON ###############
+      ! ########  NADARAYA-WATSON ###############         
           do j = 1,npar
                if (h(j).gt.0) then
                     call R1GRID_(X(1,j),Y,n,WY,h(j),kbin,Xgrid(1,j),&
-                NWGrid(1,j),NWGRIDCV(1,j),Wb)
-               else
+                NWGrid(1,j),NWGRIDCV(1,j),Wb,ikernel)
+                else
                     do i=1,kbin
                        NWgrid(i,j) = 0.0
                        NWGRIDCV(i,j) = 0.0
                     end do
                end if
           end do
+      
       ! ####  Initial estimates ############
           call Mean(Y,Wy,n,a)
           a = 0.0
@@ -1266,6 +1294,7 @@
                     Mold(j,i) = M(j,i)     
                end do
           end do
+      
       ! ########  Iterations ###############
           do it = 1,maxit
                do j = 1,npar
@@ -1370,13 +1399,14 @@
           end do     
      
      deallocate (Mold,NW,Mcv,Mgrid,NWgrid,&
-     Vaux,Wb,NWgridCV,MgridCV,Err,PjGrid,PjkGrid)
+     Vaux,Wb,NWgridCV,MgridCV,Err,PjGrid,PjkGrid,&
+     Xgrid, Baux, Predaux)
      return
      end
 !     *********************************************************
 !     *********************************************************     
      subroutine dllvcoef(X,Z,offset,Y,W,n,npar,Zl,nparl,kbin,h,M,&
-                 Mx,muhat,family,X0,Z0,Z0l,offset0,Mx0,muhat0,n0,B,err) 
+                 Mx,muhat,family,X0,Z0,Z0l,offset0,Mx0,muhat0,n0,B,err,ikernel) 
      implicit none
      integer j,k,i,it,itmax,n,npar,kbin,n0,II(npar),icont,nparl,err
      double precision eps,media,s0,X(n,npar),Z(n,npar),Y(n),& 
@@ -1384,7 +1414,8 @@
      muhat(n), devian, devold, num, den, p0, sumw,&
      Z0(n0,npar),Z0l(n0,nparl),&
      etaold,alfa, X0(n0,npar),M0(n0,npar),MX0(n0,npar),&
-     muhat0(n0),B(nparl+1),Zl(n,nparl), offset(n), offset0(n0)
+     muhat0(n0),B(nparl+1),Zl(n,nparl), offset(n), offset0(n0),&
+     ikernel
 
      
      double precision,allocatable:: h0(:),Z2(:),Wz(:),EtaS(:), Eta(:),&
@@ -1457,7 +1488,7 @@
          
 
 
-        call Vcoef2 (X,Z,Y2,W,Wz,n,kbin,npar,h0,M,Mx,etaS,X0,Z0,M0,MX0,eta0,n0)
+          call Vcoef2 (X,Z,Y2,W,Wz,n,kbin,npar,h0,M,Mx,etaS,X0,Z0,M0,MX0,eta0,n0,ikernel)
          
           eta = Etal + EtaS + offset
           call Linv(n,Eta,Muhat,linc) 
@@ -1485,12 +1516,14 @@
      EtaS = 0.0
      B = 0.0
      Y2 = 0.0
+     deallocate (h0,Z2,Wz,Eta,EtaL,EtaS,eta0,Y2,etal0) 
+     return
 
      end
 
 !     *********************************************************
 !     *********************************************************
-     subroutine VCoef2(X,Z,Y,W,Wy,n,kbin,npar,h,M,Mx,Pred,X0,Z0,M0,MX0,pred0,n0)
+     subroutine VCoef2(X,Z,Y,W,Wy,n,kbin,npar,h,M,Mx,Pred,X0,Z0,M0,MX0,pred0,n0,ikernel)
      implicit none
      logical converge
      integer maxit,j,k,i,it,i1,i2,n,npar,s,nh,ih,iopt,kbin,n0
@@ -1500,7 +1533,8 @@
      ErrCV,errmin,haux,&
      erropt,pred2,PredCV(n),&
      Mx(n,npar),&
-     X0(n0,npar),z0(n0,npar),m0(n0,npar),mx0(n0,npar),pred0(n0)
+     X0(n0,npar),z0(n0,npar),m0(n0,npar),mx0(n0,npar),pred0(n0),&
+     ikernel
      logical calib
 
      double precision,allocatable::h2(:),hopt(:),h3(:),&
@@ -1535,7 +1569,7 @@
                          h3 = 0.0
                          h3(j) = haux
                          call VCoef3(X,Z,Y,W,Wy,n,npar,kbin,h3,M,Mx,Pred,PredCv,&
-                                     iopt,X0,Z0,M0,MX0,pred0,n0)
+                                     iopt,X0,Z0,M0,MX0,pred0,n0,ikernel)
                
                          ErrCV = 0.0
                          do i = 1,n
@@ -1567,7 +1601,7 @@
                          h3(j) = haux
                          iopt = 1
                          call VCoef3(X,Z,Y,W,Wy,n,npar,kbin,h3,M,Mx,Pred,PredCv,&
-                                     iopt,X0,Z0,M0,MX0,pred0,n0)
+                                     iopt,X0,Z0,M0,MX0,pred0,n0,ikernel)
                          ErrCV = 0.0
                          do i = 1,n
                               ErrCV = ErrCV+Wy(i)*(predCv(i)-Y(i))**2
@@ -1584,7 +1618,7 @@
      end if
      iopt = 1
      call VCoef3(X,Z,Y,W,Wy,n,npar,kbin,h2,M,Mx,Pred,PredCv,&
-     iopt,X0,Z0,M0,MX0,pred0,n0)
+     iopt,X0,Z0,M0,MX0,pred0,n0,ikernel)
      h = h2
      deallocate(h2,hopt,h3,hmin,hmax)
      return
@@ -1592,7 +1626,7 @@
 !     *********************************************************
 !     *********************************************************     
      subroutine VCoef3(X,Z,Y,W,Wy,n,npar,kbin,h,M,Mx,Pred,PredCV,&
-     iopt,X0,Z0,M0,MX0,pred0,n0)
+     iopt,X0,Z0,M0,MX0,pred0,n0,ikernel)
      implicit none
      logical converge
      integer maxit,j,k,i,it,i1,i2,n,npar,kbin,s,iopt,n0
@@ -1600,7 +1634,8 @@
      X(n,npar),Z(n,npar),Y(n),W(n),Wy(n),h(npar),Maux,erraux,M(n,npar),&
      Pred(n),xmin,xmax,delta,Predl(n),aux,medy,&
      mauxcv,PredCV(n),MX(n,npar),X0(n0,npar),z0(n0,npar),m0(n0,npar),&
-     mx0(n0,npar),pred0(n0),med, predaux(n), Baux(2)
+     mx0(n0,npar),pred0(n0),med, predaux(n), Baux(2),&
+     ikernel
      double precision,external::pZjk,pZj,kernh,integrate
 
      double precision,allocatable::Err(:),integral(:),&
@@ -1634,7 +1669,7 @@
      !     ########       DENSIDADES    ###############     
           do j = 1,npar
                do i = 1,kbin
-                    PZjGrid(i,j) = pZj(X(1,j),Z(1,j),Xgrid(i,j),Wy,h(j),n)
+                    PZjGrid(i,j) = pZj(X(1,j),Z(1,j),Xgrid(i,j),Wy,h(j),n,ikernel)
                end do
           end do
      
@@ -1643,7 +1678,7 @@
                     do j = 1,npar
                          do k = j+1,npar
                               PZjkGrid(i1,i2,j,k) = pZjk(X(1,j),X(1,k),Z(1,j),&
-                        Z(1,k),Xgrid(i1,j),Xgrid(i2,k),Wy,h(j),h(k),n)
+                        Z(1,k),Xgrid(i1,j),Xgrid(i2,k),Wy,h(j),h(k),n,ikernel)
                          end do
                     end do
                end do
@@ -1662,7 +1697,7 @@
      !     ########       NADARAYA WATSON    ###############     
      do j = 1,npar
           call R1GRIDZ_(X(1,j),Y,Z(1,j),n,Wy,h(j),kbin,Xgrid(1,j),&
-                           Aux1(1,j),Aux2(1,j),Aux1Cv(1,j),Aux2Cv(1,j),Wb(1,j))
+                           Aux1(1,j),Aux2(1,j),Aux1Cv(1,j),Aux2Cv(1,j),Wb(1,j),ikernel)
      end do
      
      ! ####  INITIAL ESTIMATES ############
@@ -1796,14 +1831,15 @@
      end
 !     *********************************************************
 !     *********************************************************
-     subroutine R1GRIDZ_(X,Y,Z,n,W,h,kbin,Xb,M1b,M2b,M1bCV,M2bCV,Wb)
+     subroutine R1GRIDZ_(X,Y,Z,n,W,h,kbin,Xb,M1b,M2b,M1bCV,M2bCV,Wb,ikernel)
           implicit none
           integer n,kbin,i,i0
           double precision X(n),Y(n),W(n),Xb(kbin),Wb(kbin),Yb(kbin),Delta,d1,k,&
           kernel1(kbin),S0(kbin),t0(kbin),t1(kbin),Sumw,ErrCV,&
           Z(n),s0cv,t0cv,t1cv,M1bcv(kbin),M2bcv(kbin),&
           kernel2(kbin),M1b(kbin),aux,h,haux,num,den,&
-          Zb(kbin),Yzb(kbin),Z2b(kbin),M2b(kbin)
+          Zb(kbin),Yzb(kbin),Z2b(kbin),M2b(kbin),&
+          ikernel
           double precision,external::L1,ker  
           if (h.gt.0) then
                sumw = 0
@@ -1815,11 +1851,15 @@
                S0 = 0.0
                t0 = 0.0
                t1 = 0.0
+               M1b = 0.0
+               M2b = 0.0
+               M1bCV = 0.0
+               M2bCV = 0.0
                
                call Bin1dZ_(X,Y,Z,W,n,Xb,YZb,Zb,Z2b,Wb,kbin)
      
                Delta = Xb(2) - Xb(1)
-               call ker1D_(h,Delta,kbin,kernel1)
+               call ker1D_(h,Delta,kbin,kernel1,ikernel)
                do i = 1,kbin
                     kernel2 = kernel1
                     haux = h
@@ -1840,13 +1880,18 @@
                     s0cv = s0(i)-kernel1(1)*Z2b(i)
                     t0cv = t0(i)-kernel1(1)*YZb(i)
                     t1cv = t1(i)-kernel1(1)*Zb(i)
-                    M1bCV(i) = t0cv/s0cv
-                    M2bCV(i) = t1cv/s0cv
+                    if (s0cv.le.0) then
+                        M1bCV(i) = 0.0
+                        M2bCV(i) = 0.0
+                    else
+                        M1bCV(i) = t0cv/s0cv
+                        M2bCV(i) = t1cv/s0cv
+                    end if
                end do
                return
           end if
      
-     13     continue
+     13   continue
      
           M1b = -1.0
           M2b = -1.0
@@ -1888,7 +1933,7 @@
                               goto 1
                          end if
                     end do
-     1               continue
+     1              continue
      
                     d1 = Xb(ii+1)-X(i)
                     Area(1) = d1/delta
@@ -1910,28 +1955,36 @@
      end     
 !     *********************************************************
 !     *********************************************************
-     subroutine R1GRID_(X,Y,n,WY,h,kbin,Xb,M0Grid,M0CV,Wb)
+     subroutine R1GRID_(X,Y,n,WY,h,kbin,Xb,M0Grid,M0CV,wb,ikernel)
           implicit none
-          integer n,kbin,i,i0
+          integer n,kbin,i,i0,j
           double precision X(n),Y(n),WY(n),Xb(kbin),&
           Wb(kbin),Yb(kbin),Delta,d1,k,&
           kernel(kbin),S0(kbin),t0(kbin),&
-          m0CV(kbin),Ymed(kbin),M0grid(kbin),aux,&
-          t0cv,h,num,den,sumw
-          double precision,external::L1,ker
+          m0CV(kbin),M0grid(kbin),aux,&
+          h,num,den,sumw,&
+          ikernel         
+          double precision,external::L1
+
+          M0Grid = 0.0
+          M0CV = 0.0
+          kernel = 0.0
+          yb = 0.0
+          wb = 0.0
+          S0 = 0.0
+          t0 = 0.0
+
           if (h.gt.0) then
-               sumw = 0
+               sumw = 0.0
                do i = 1,n
                     sumw = sumw + WY(i)
                end do
                WY = WY/sumw
-               
-               S0 = 0.0
-               t0 = 0.0
+                       
                call Bin1d_(X,Y,Wy,n,Xb,Yb,Wb,kbin)
              
                Delta = Xb(2)-Xb(1)
-               call ker1D_(h,Delta,kbin,kernel)
+               call ker1D_(h,Delta,kbin,kernel,ikernel)
                do i=1,kbin
                     do i0=1,kbin
                          d1 = (i0-i)*Delta
@@ -1944,14 +1997,22 @@
                          end if
                     end do     
                     if (s0(i).le.0) goto 13  
-                    if (s0(i)-kernel(1)*Wb(i).eq.0)  goto 13      
+                    !if (s0(i)-kernel(1)*Wb(i).eq.0)  goto 13
+                    
+                    if (s0(i)-kernel(1)*Wb(i).eq.0) then
+                        M0Cv(i) = 0.0
+                    else
+                        M0Cv(i) = (t0(i)-kernel(1)*Yb(i))/(s0(i)-kernel(1)*Wb(i))
+                    end if
+
                     M0grid(i) = t0(i)/s0(i)
-                    M0Cv(i) = (t0(i)-kernel(1)*Yb(i))/(s0(i)-kernel(1)*Wb(i))
+                    
                end do
                return
           end if
      13   M0grid = -1.0
-          M0Cv = -1.0    
+          M0Cv = -1.0
+          return
      end
 !     *********************************************************
 !     *********************************************************
@@ -1960,10 +2021,10 @@
           integer kbin,n,i,ii,j
           double precision x(n),y(n),Wy(n),Xb(kbin),Yb(kbin),Wb(kbin),d1,delta,Area(2)
      
-          Wb = 0
-          Yb = 0
-          delta=Xb(2)-Xb(1)
-          do i=1,n     
+          Wb = 0.0
+          Yb = 0.0
+          delta = Xb(2)-Xb(1)
+          do i = 1,n     
                if (X(i).le.Xb(1)) then
                     ii = 1
                     Wb(ii) = Wb(ii) + Wy(i)
@@ -1973,14 +2034,13 @@
                     Wb(ii) = Wb(ii) + Wy(i)
                     Yb(ii) = Yb(ii) + Wy(i)*Y(i)
                else
-     
                     do j=1,kbin-1
                          if (Xb(j).le.X(i).and.X(i).le.Xb(j+1)) then
                               ii = j
                               goto 1
                          end if
                     end do
-     1               continue 
+     1              continue 
                     d1 = Xb(ii+1)-X(i)
                     Area(1) = d1/delta
                     Area(2) = (delta-d1)/delta
@@ -2052,19 +2112,23 @@
      end
 !     *********************************************************
 !     *********************************************************
-     subroutine ker1D_(h,Delta,kbin,ker)
+	subroutine ker1D_(h,Delta,kbin,ker,ikernel)
           implicit none
           integer kbin,i
-          double precision Delta,ker(kbin),Dis,h
+          double precision Delta,ker(kbin),Dis,h,ikernel
           ker = 0.0  
-          do i = 1,kbin
-               Dis = (i-1)*Delta/h
-               Dis = -.5*Dis**2
-               if (Dis.gt.-3.and.h.gt.0) then 
-                  ker(i) = exp(dis)/(h*sqrt(2*3.1415))
+          do i = 1, kbin
+               if (ikernel.eq.1) then
+                 Dis = (i-1)*Delta/h
+                 Dis = -0.5*Dis**2
+                 if (Dis.gt.-3.and.h.gt.0) ker(i) = exp(dis)/(h*sqrt(2*3.1415))
+               else
+                  dis = abs((i-1)*Delta/h)
+                  if (dis.le.1) ker(i) = (3.0/4.0)*(1-dis**2)/h
                end if
           end do
      end
+
 !     *********************************************************
 !     *********************************************************
      double precision function L1(d1,r,Ker)
@@ -2075,37 +2139,43 @@
      end
 !     *********************************************************
 !     *********************************************************
-     double precision function kernh(X,x0,h)
+	double precision function kernh(X,x0,h,ikernel)
           implicit none
-          double precision X,x0,dis,h,aux
-          
-          kernh=0.0
+          double precision X,x0,dis,h,aux,ikernel
+          kernh = 0.0
           if (h.gt.0) then
-            dis=(x-x0)/h
-            aux=-0.5*(Dis**2)
-            if (aux.ge.-3) kernh=exp(aux)/(h*sqrt(2*3.1415))
-          end if
+            dis = abs((x-x0)/h)
+            if (ikernel.eq.1) then
+               aux = -0.5*(dis**2)  
+               if (aux.ge.-3) kernh = exp(aux)/(h*sqrt(2*3.1415))
+            else
+                if (dis.le.1) kernh = (3.0/4.0)*(1-dis**2)/h
+            end if
+           end if
       end
+
+
+
 !     *********************************************************
 !     *********************************************************
-     double precision function pZj(X,Z,x0,W,h,n)
+     double precision function pZj(X,Z,x0,W,h,n,ikernel)
           implicit none
           integer n,i
-          double precision X(n),Z(n),W(n),x0,h
+          double precision X(n),Z(n),W(n),x0,h,ikernel
           double precision,external::kernh
           pZj=0.0     
           if (h.gt.0) then
                do i=1,n
-                    pZj=pZj+(Z(i)**2)*kernh(X(i),x0,h)*W(i)
+                    pZj=pZj+(Z(i)**2)*kernh(X(i),x0,h,ikernel)*W(i)
                end do
           end if
      end
 !     *********************************************************
 !     *********************************************************          
-     double precision function pZjk(X1,X2,Z1,Z2,x01,x02,W,h1,h2,n)
+     double precision function pZjk(X1,X2,Z1,Z2,x01,x02,W,h1,h2,n,ikernel)
           implicit none
           integer n,i
-          double precision X1(n),X2(n),W(n),Z1(n),Z2(n),x01,x02,h1,h2
+          double precision X1(n),X2(n),W(n),Z1(n),Z2(n),x01,x02,h1,h2,ikernel
           double precision,external::kernh
           pZjk=0
                
@@ -2113,31 +2183,31 @@
                pZjk=0.0
           else
                do i=1,n
-                    pZjk=pZjk+Z1(i)*Z2(i)*kernh(X1(i),x01,h1)*&
-                kernh(X2(i),x02,h2)*W(i)
+                    pZjk=pZjk+Z1(i)*Z2(i)*kernh(X1(i),x01,h1,ikernel)*&
+                kernh(X2(i),x02,h2,ikernel)*W(i)
                end do
           end if
      end     
 !     *********************************************************
 !     *********************************************************     
-     double precision function pj(X,x0,W,h,n)
+     double precision function pj(X,x0,W,h,n,ikernel)
           implicit none
           integer n,i
-          double precision X(n),W(n),x0,h
+          double precision X(n),W(n),x0,h,ikernel
           double precision,external::kernh
           pj = 0.0
           if (h.gt.0) then
                do i=1,n
-                    pj = pj + kernh(X(i),x0,h)*W(i)
+                    pj = pj + kernh(X(i),x0,h,ikernel)*W(i)
                end do
           end if
      end
 !     *********************************************************
 !     *********************************************************     
-     double precision function pjk(X1,X2,x01,x02,W,h1,h2,n)
+     double precision function pjk(X1,X2,x01,x02,W,h1,h2,n,ikernel)
           implicit none
           integer n,i
-          double precision X1(n),X2(n),W(n),x01,x02,h1,h2
+          double precision X1(n),X2(n),W(n),x01,x02,h1,h2,ikernel
           double precision,external::kernh
           pjk=0.0
                
@@ -2145,7 +2215,7 @@
                pjk = 0.0
           else
                do i=1,n
-                    pjk = pjk + kernh(X1(i),x01,h1)*kernh(X2(i),x02,h2)*W(i)
+                    pjk = pjk + kernh(X1(i),x01,h1,ikernel)*kernh(X2(i),x02,h2,ikernel)*W(i)
                end do
           end if
      end     

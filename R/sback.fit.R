@@ -1,7 +1,10 @@
 sback.fit <-
-function(formula, data, offset = NULL, weights = NULL, kbin = 15, family = c("gaussian", "binomial", "poisson"), newdata = NULL, newoffset = NULL, call = NULL, pred = FALSE) {
+function(formula, data, offset = NULL, weights = NULL, kernel = c("Gaussian", "Epanechnikov"), kbin = 15, family = c("gaussian", "binomial", "poisson"), newdata = NULL, newoffset = NULL, call = NULL, pred = FALSE) {
 	family <- match.arg(family)
+	kernel <- match.arg(kernel)
+
 	family_fortran <- switch(family, "gaussian" = 2, "binomial" = 1, "poisson" = 3)
+	kernel_fortran <- switch(kernel, "Gaussian" = 1, "Epanechnikov" = 2)
 
 	if(missing(formula)) {
 		stop("Argument \"formula\" is missing, with no default")
@@ -117,7 +120,9 @@ function(formula, data, offset = NULL, weights = NULL, kbin = 15, family = c("ga
 		  		   muhat0  = as.double(rep(0.0,n0)),
 		   		   n0	   = as.integer(n0),
 		   		   B       = as.double(rep(0.0, as.integer(nparl + 1))),
-		   		   err     = as.integer(0), PACKAGE = "wsbackfit")
+		   		   err     = as.integer(0),
+		   		   ikernel  = as.double(kernel_fortran),
+		   		   PACKAGE = "wsbackfit")
 	 	peffects <- fit$m0
 		effects <- fit$m
 	} else {
@@ -145,7 +150,9 @@ function(formula, data, offset = NULL, weights = NULL, kbin = 15, family = c("ga
 		muhat0  = as.double(rep(0.0, n0)),
 		n0      = as.integer(n0),
 		B       = as.double(rep(0.0, as.integer(nparl + 1))), 
-		err     = as.integer(0), PACKAGE = "wsbackfit")
+		err     = as.integer(0),
+	    ikernel  = as.double(kernel_fortran),
+		PACKAGE = "wsbackfit")
 	
 		effects <- fit$mx
 		peffects <- fit$mx0
@@ -156,7 +163,7 @@ function(formula, data, offset = NULL, weights = NULL, kbin = 15, family = c("ga
 
 	residuals <- dev.residuals(data[,fsb$response], fit$muhat, weights, family = family)
 
-	res <- list(call = call, formula = formula, data = data, weights = weights, offset = offset, kbin = kbin, family = family, pdata = newdata, poffset = newoffset, effects = effects, peffects = peffects, fitted.values = fit$muhat, pfitted.values = fit$muhat0, residuals = residuals, h = fit$h, fit = fit, coeff = fit$B)
+	res <- list(call = call, formula = formula, data = data, weights = weights, offset = offset, kernel = kernel, kbin = kbin, family = family, pdata = newdata, poffset = newoffset, effects = effects, peffects = peffects, fitted.values = fit$muhat, pfitted.values = fit$muhat0, residuals = residuals, h = fit$h, fit = fit, coeff = fit$B)
 	if(!pred) {
 		res$pdata <- NULL
 		res$poffset <- NULL
