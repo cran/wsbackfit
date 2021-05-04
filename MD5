@@ -1,6 +1,6 @@
-6a0fce28bd5d8cb2274aa6414c750ea7 *DESCRIPTION
+ca23dd0b2844849042e5efc885b92e63 *DESCRIPTION
 f5d9ceec560e4e973e034e2c6bfd8a2d *NAMESPACE
-4556ba31e768eac181dd988ea63bb049 *NEWS
+474cdf5f1eaab930ee5d81585e7c2ffa *NEWS
 3ab33f8cbc627f9da4db90eb4369d40c *R/calculate.CV.R
 ee4356a2863491396ce280f03beda1bf *R/construct.fixed.matrix.R
 3fd659e7b3673ad14a0556d7b505f58a *R/construct.fixed.prediction.matrix.R
@@ -18,7 +18,7 @@ db96c4793e956f19f893a29c8eb19c0a *R/print.summary.sback.R
 017a01acf28d5b2c97395ea243ce0d25 *R/search.alpha.R
 e8c9f79a78fe99ef3372a4efee6f7ccf *R/search.bandwidth.R
 a2fe864e96ee81a4ff841447975febd8 *R/summary.sback.R
-ca2fcc50c3d2d7eab33ffeb7499e7ca0 *build/partial.rdb
+09e305966562cf650b4126aec9a6c5ca *build/partial.rdb
 1fe9734b4998e438d197dc34522ed07c *data/infect.rda
 43f9609debd0ab9349a315229ba18563 *man/infect.Rd
 bf72c5af6c82db2c342a426c6b1e2279 *man/plot.sback.Rd
@@ -28,6 +28,6 @@ a0d5470416af74bfd7cab1de21af7cbe *man/print.sback.Rd
 43a45b5494a33576d837f102ecac9f48 *man/sb.Rd
 86b55d3f799a328b080b82b8fba88cd1 *man/sback.Rd
 7770ca55a8ce1db6fad6b697941807e3 *man/summary.sback.Rd
-2101f4de18bb2b1cc7c882089b59cbb6 *man/wsbackfit-package.Rd
+c477d9c0abfe909b0503c0504185d5ef *man/wsbackfit-package.Rd
 6db4e70119b5873e1a5d8a0429259375 *src/init.c
-462b81b0e7e0d181a8f5474a0175162f *src/wsbackfit.f90
+5043e18bb38ac06f7291a246a6f309fe *src/wsbackfit.f90

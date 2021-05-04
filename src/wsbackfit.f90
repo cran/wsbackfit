@@ -1210,7 +1210,7 @@
         Mcv(:,:),Mgrid(:,:),NWgrid(:,:),Vaux(:),Wb(:),&
         NWgridCV(:,:),MgridCV(:,:), Err(:), &
         PjGrid(:,:),PjkGrid(:,:,:,:), Xgrid(:,:),&
-        Baux(:), Predaux(:)
+        Baux(:), Predaux(:), Xint(:,:), Vint(:)
     
      double precision,external::pjk,pj,integrate
      
@@ -1219,7 +1219,8 @@
      Vaux(kbin),Wb(kbin),NWgridCV(kbin,npar),&
      MgridCV(kbin,npar),Err(npar),&
      PjGrid(kbin,npar),PjkGrid(kbin,kbin,npar,npar),&
-     Xgrid(kbin,npar), Baux(2), Predaux(n))
+     Xgrid(kbin,npar), Baux(2), Predaux(n),&
+     Xint(51,npar), Vint(51))
 
      maxit = 10
      eps = 0.01
@@ -1235,6 +1236,15 @@
                Delta=(xmax-xmin)/(kbin-1)  
                do i=1,kbin
                     XGrid(i,j)=xmin+(i-1)*Delta
+               end do
+          end do
+
+     !   ###     GRID DONDE HACER LAS INTEGRALES
+         do j = 1,npar
+               call Min_y_max(X(1,j),n,xmin,xmax,Wy)     
+               Delta=(xmax-xmin)/(51-1)  
+               do i=1,51
+                    Xint(i,j)=xmin+(i-1)*Delta
                end do
           end do
      !     ########     DENSIDADES     ##########
@@ -1314,7 +1324,10 @@
                                              !end if
                                         end do                                        
                                    
-                                        integral = Integrate(XGrid(1,k),Vaux,kbin)
+                                        call Interpola (Xgrid(1,j),Vaux,kbin,&
+                                        Xint(1,j),Vint,51)
+                                        integral = Integrate(Xint(1,k),Vint,51)    
+
                                         Maux = Maux - Integral
                                         MauxCV = MauxCV - Integral
                                    end if
@@ -1400,7 +1413,7 @@
      
      deallocate (Mold,NW,Mcv,Mgrid,NWgrid,&
      Vaux,Wb,NWgridCV,MgridCV,Err,PjGrid,PjkGrid,&
-     Xgrid, Baux, Predaux)
+     Xgrid, Baux, Predaux,Xint,Vint)
      return
      end
 !     *********************************************************
@@ -1644,7 +1657,7 @@
      aux1cv(:,:),aux2cv(:,:),Xgrid(:,:),&
      PZjGrid(:,:),PZjkGrid(:,:,:,:),&
      Mgrid(:,:),MgridCV(:,:),&
-     MCV(:,:)
+     MCV(:,:),Xint(:,:),Vint(:)
 
      allocate(Err(npar),integral(npar),&
      Wb(kbin,npar),aux1(kbin,npar),aux2(kbin,npar),&
@@ -1652,13 +1665,13 @@
      aux1cv(kbin,npar),aux2cv(kbin,npar),Xgrid(kbin,npar),&
      PZjGrid(kbin,npar),PZjkGrid(kbin,kbin,npar,npar),&
      Mgrid(kbin,npar),MgridCV(kbin,npar),&
-     MCV(n,npar))
+     MCV(n,npar), Xint(51,npar), Vint(51))
      
      maxit = 10
      eps = 0.01   
           
      if (iopt.eq.1) then
-     !     ########       NODOS    ###############
+     !    ########       NODOS    ###############
           do j = 1,npar
                call Min_y_max(X(1,j),n,xmin,xmax,Wy)     
                Delta = (xmax-xmin)/(kbin-1)  
@@ -1666,7 +1679,15 @@
                     XGrid(i,j) = xmin+(i-1)*Delta
                end do
           end do
-     !     ########       DENSIDADES    ###############     
+     !   ########       INTEGRALES    ###############
+         do j = 1,npar
+               call Min_y_max(X(1,j),n,xmin,xmax,Wy)     
+               Delta=(xmax-xmin)/(51-1)  
+               do i=1,51
+                    Xint(i,j)=xmin+(i-1)*Delta
+               end do
+          end do
+     !    ########       DENSIDADES    ###############     
           do j = 1,npar
                do i = 1,kbin
                     PZjGrid(i,j) = pZj(X(1,j),Z(1,j),Xgrid(i,j),Wy,h(j),n,ikernel)
@@ -1723,7 +1744,10 @@
                     do i1 = 1,kbin
                          Vaux(i1) = Mgrid(i1,k)*aux2(i1,k)*PzjGrid(i1,k)                              
                     end do
-                    Integral(k) = Integrate(Xgrid(1,k),Vaux,kbin)
+                    call Interpola (Xgrid(1,k),Vaux,kbin,&
+                                        Xint(1,k),Vint,51)
+                    Integral(k) = Integrate(Xint(1,k),Vint,51)
+                    !Integral(k) = Integrate(Xgrid(1,k),Vaux,kbin)
                     alpha = alpha - Integral(k)/n
                end if
           end do
@@ -1739,8 +1763,11 @@
                                    do i1 = 1,kbin
                                         Vaux(i1) = Mgrid(i1,k)*&
                                         PZjkGrid(i,i1,j,k)/PZjgrid(i,j)
-                                   end do                                        
-                                   Integral(k) = Integrate(XGrid(1,k),Vaux,kbin)
+                                   end do
+                                   call Interpola (Xgrid(1,k),Vaux,kbin,&
+                                        Xint(1,k),Vint,51)
+                                   Integral(k) = Integrate(Xint(1,k),Vint,51)
+                                   !Integral(k) = Integrate(XGrid(1,k),Vaux,kbin)
                                    Maux = Maux - Integral(k)
                                    MauxCV = MauxCV - Integral(k)
                               end if
@@ -1826,7 +1853,7 @@
       aux1cv,aux2cv,Xgrid,&
       PZjGrid,PZjkGrid,&
       Mgrid,MgridCV,&
-      MCV)
+      MCV, Xint, Vint)
       return
      end
 !     *********************************************************
